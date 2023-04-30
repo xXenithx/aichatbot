@@ -1,0 +1,66 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/vs2015.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="content">
+            <h1>Chat GPT</h1>
+            {% if messages %}
+            <div class="chat-history-wrapper">
+                <div class="history">
+                    {% for message in messages %}
+                    {% if message.role == "user" %}
+                    <div class="user-message">
+                        <strong>User: </strong>{{ message.content }}
+                    </div>
+                    {% else %}
+                    <div class="bot-response">
+                        {% if "<div class='loader'></div>" in message.content %}
+                        <div class="loader-wrapper">
+                            {{ message.content | safe }}
+                        </div>
+                        {% else %}
+                        <strong>Bot: </strong>{{ message.content | wrap_code | safe }}
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        <div class="footer">
+            <div class="footer-forms">
+                <form method="post" class="message-form">
+                    <div class="message-wrapper">
+                        <textarea name="prompt" placeholder="Enter your message..."></textarea>
+                    </div>
+                    <div class="panel-body">
+                        <button type="submit" name="action" value="Send" class="btn send-btn">Send</button>
+                        <button type="submit" name="action" value="Clear" class="btn clear-btn">Clear</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', (event) => {
+            document.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightElement(block);
+            });
+        });
+    </script>
+</body>
+
+</html>

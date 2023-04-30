@@ -1,0 +1,240 @@
+body {
+    font-family: Arial, sans-serif;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #222831;
+    color: #eeeeee;
+}
+
+h1 {
+    text-align: center;
+    height: 50px;
+    line-height: 50px;
+    background-color: #393e46;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1;
+    padding: 20px 0;
+    margin: 0
+}
+
+.message-form {
+    flex-grow: 1;
+}
+
+.clear-form {
+    display: flex;
+}
+
+textarea {
+    width: 100%;
+    height: 100px;
+    margin-bottom: 20px;
+    background-color: #393e46;
+    border: none;
+    color: #eeeeee;
+    padding: 10px;
+    resize: none;
+}
+
+.send-btn {
+    background-color: #4CAF50;
+    border: none;
+    color: white;
+    padding: 8px 16px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 14px;
+    margin: 0;
+    cursor: pointer;
+}
+
+.clear-btn {
+    background-color: #f44336;
+    border: none;
+    color: white;
+    padding: 8px 16px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 14px;
+    margin: 0 4px;
+    cursor: pointer;
+}
+
+.response {
+    background-color: #393e46;
+    padding: 20px;
+    margin-top: 20px;
+    border-radius: 5px;
+}
+
+pre {
+    background-color: #1f1f1f;
+    padding: 10px;
+    border-radius: 5px;
+    overflow: auto;
+    margin: 0;
+    font-size: 0.8em;
+}
+
+code {
+    font-family: "Courier New", Courier, monospace;
+    color: #a028f0;
+    background-color: rgba(0, 0, 0, 0.1);
+    padding: 1px 4px;
+    border-radius: 4px;
+}
+
+.history {
+    margin-bottom: 20px;
+    margin-top: 50px;
+}
+
+.user-message {
+    margin-bottom: 10px;
+    color: #ffffff;
+    background-color: #3a82f7;
+    border-radius: 5px;
+    padding: 8px 12px;
+}
+
+.bot-response {
+    margin-bottom: 10px;
+    color: #ffffff;
+    background-color: #39a595;
+    border-radius: 5px;
+    padding: 8px 12px;
+}
+
+.bot-response pre {
+    background-color: #222831;
+    color: #eeeeee;
+    padding: 4px;
+    border-radius: 4px;
+}
+
+.user-message strong,
+.bot-response strong {
+    font-weight: bold;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    height: 100vh;
+}
+
+.content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    padding-top: 40px;
+}
+
+.footer {
+    background-color: #222831;
+    padding: 20px;
+    position: sticky;
+    bottom: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.footer textarea {
+    flex-grow: 1;
+    margin-right: 10px;
+}
+
+.btn {
+    border: none;
+    color: #eeeeee;
+    padding: 8px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 4px;
+    margin-left: 4px;
+    margin-right: 4px;
+}
+
+.btn:hover {
+    opacity: 0.8;
+}
+
+.footer-forms {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.footer-forms form {
+    display: flex;
+    align-items: center;
+}
+
+.footer-forms .panel-body {
+    display: flex;
+    align-items: center;
+}
+
+.footer-forms .panel-body button {
+    margin-left: 10px;
+}
+
+.message-wrapper {
+    flex-grow: 1;
+    display: flex;
+}
+
+.panel-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.chat-history-wrapper {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding-right: 8px; /* Add some padding to prevent the scrollbar from overlapping content */
+}
+
+.loader-wrapper {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.loader {
+    display: block;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 80px;
+    height: 80px;
+    margin: -40px 0 0 -40px;
+    border-radius: 50%;
+    border: 8px solid #f3f3f3;
+    border-top: 8px solid #3498db;
+    animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
