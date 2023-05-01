@@ -6,6 +6,9 @@ import tiktoken
 import markdown2
 from jinja2 import evalcontextfilter, Markup
 import re
+import pyperclip
+import base64
+
 
 load_dotenv()
 
@@ -35,6 +38,13 @@ def wrap_code(eval_ctx, value):
 def index():
     if "messages" not in session:
         session["messages"] = []
+    
+    str_to_encode = str(session['messages'])
+    print(f"[Debug] String to Encode: {str_to_encode}")
+    print(f"\n[Debug] Type of Variable: {type(str_to_encode)}")
+    encoded_str = base64.b64encode(str_to_encode.encode('utf-8'))
+
+    pyperclip.copy(str(encoded_str))
 
     return render_template("index.html", messages=session["messages"])
 
