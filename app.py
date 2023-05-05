@@ -41,7 +41,7 @@ def count_tokens(text_arr):
     return num_tokens
 
 def gptinstance(prompt, filename):
-    instance_id = uuid.uuid1
+    instance_id = str(uuid.uuid1())
     session[instance_id] = []
     m = session[instance_id]
 
@@ -82,6 +82,8 @@ def gptinstance(prompt, filename):
     
     print(f"\n[Debug] RESULT:{result}\n")
     session.modified = True
+    
+    session.pop(instance_id)
 
     return instance_id, result
 
@@ -173,8 +175,8 @@ def process_form():
         print(f"Debug: Max Token count {max_tokens}")
         print(f"Debug: Messages: {m}, Max Tokens: {max_tokens}")
 
-        # Adds a loader
-        session["messages"].append({"role": "assistant", "content": "<div class='loader'></div> Bot is typing..."})
+        # # Adds a loader
+        # session["messages"].append({"role": "assistant", "content": "<div class='loader'></div> Bot is typing..."})
         session.modified = True
 
         res = openai.ChatCompletion.create(
@@ -191,13 +193,13 @@ def process_form():
         id,response = parse_and_call_function(result_without_tags)
 
         instances.append(id)
-        print(f"[Debug] Instance Tracker: {instances}")
+        print(f"[Debug] Instance Tracker: {instances}\nResponse:{response}")
 
         session["messages"].append({"role": "user", "content": p})
         session["messages"].append(
             {"role": "assistant", "content": response})
         session.modified = True
-        print(session)
+        print(session["messages"])
 
     elif request.form["action"] == "Clear":
         popped_data = session.pop("messages")
