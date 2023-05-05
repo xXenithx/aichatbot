@@ -6,14 +6,14 @@ import tiktoken
 import markdown2
 from jinja2 import evalcontextfilter, Markup
 import re
-import pyperclip
-import base64
 import uuid
 import ast
 from github import Github
 import requests
 
 load_dotenv()
+conversations = {}
+
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY") or "Puzzle Enemy Start Breathe 0"
@@ -138,33 +138,34 @@ def wrap_code(eval_ctx, value):
     result = code_pattern.sub(r'<pre><code>\1</code></pre>', value)
     return Markup(result)
 
-
-@app.route("/", methods=["GET"])
-def index():
-    if "messages" not in session:
-        session["messages"] = []
-    
-    str_to_encode = str(session['messages'])
-    # print(f"[Debug] String to Encode: {str_to_encode}")
-    # print(f"\n[Debug] Type of Variable: {type(str_to_encode)}")
-    # encoded_str = base64.b64encode(str_to_encode.encode('utf-8'))
-
-    # pyperclip.copy(str(encoded_str))
-    print(session)
-    return render_template("index.html", messages=session["messages"])
-
 def remove_html_tags(text):
     clean = re.compile('<.*?>')
     return re.sub(clean, '', text)
 
 
+@app.route("/", methods=["GET"], defaults={"conversation_id": None})
+@app.route("/<conversation_id>", methods=["GET"])
+def index(conversation_id):
+    if conversation_id is None:
+        conversation_id = str(uuid.uuid4())
+
+    if conversation_id not in conversations:
+        conversations[conversation_id] = []
+
+    return render_template("index.html", messages=conversations[conversation_id], conversation_id=conversation_id)
+
+
+
 @app.route("/", methods=["POST"])
 def process_form():
+
+    conversation_id = request.form["conversation_id"]
+
     if request.form["action"] == "Send":
         p = request.form["prompt"]
         instances = []
         sys = [{"role": "system", "content":"Assist with code-related questions. You know filenames but not the code to avoid token limit. You'll receive a list of filenames. For queries about a specific file, call an internal function gptinstance(prompt, filename). The prompt is your question for another GPT instance, and the filename is the name of the file being requested. The next message is the other GPT instance's response. Example: User: 'Help needed for filename1 to make code efficient.'Assistant: gptinstance('Make code efficient', filename1) User: GPT Response: 'GPT model response...'"}]
-        m = session["messages"] + [{"role": "user", "content": p}]
+        m = conversations[conversation_id] + [{"role": "user", "content": p}]
         max_tokens = 8192 - count_tokens(m+sys) - 1
 
         # Adds a saftey buffer to avoid over-generating tokens
@@ -174,10 +175,6 @@ def process_form():
         print(f"Debug: {m}")
         print(f"Debug: Max Token count {max_tokens}")
         print(f"Debug: Messages: {m}, Max Tokens: {max_tokens}")
-
-        # # Adds a loader
-        # session["messages"].append({"role": "assistant", "content": "<div class='loader'></div> Bot is typing..."})
-        session.modified = True
 
         res = openai.ChatCompletion.create(
             model="gpt-4",
@@ -195,18 +192,15 @@ def process_form():
         instances.append(id)
         print(f"[Debug] Instance Tracker: {instances}\nResponse:{response}")
 
-        session["messages"].append({"role": "user", "content": p})
-        session["messages"].append(
-            {"role": "assistant", "content": response})
-        session.modified = True
-        print(session["messages"])
+        conversations[conversation_id].append({"role": "user", "content": p})
+        conversations[conversation_id].append({"role": "assistant", "content": response})
 
     elif request.form["action"] == "Clear":
-        popped_data = session.pop("messages")
+        popped_data = conversations.pop(conversation_id)
         
         print(f'[Debug] Popping Data from session: \n{popped_data}')
     
-    return redirect(url_for("index"))
+    return redirect(url_for("index", conversation_id=conversation_id))
 
 if __name__ == "__main__":
     app.run()
