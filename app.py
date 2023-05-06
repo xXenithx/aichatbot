@@ -22,13 +22,20 @@ GITHUB_ACCESS_TOKEN = os.getenv("GITHUB_ACCESS_TOKEN")
 github_instance = Github(GITHUB_ACCESS_TOKEN)
 
 def get_files_from_repo(user, repo_name):
+    def get_files_recursive(repo, path):
+        file_list = []
+        contents = repo.get_contents(path)
+        for item in contents:
+            if item.type == "file":
+                file_content = requests.get(item.download_url).text
+                file_list.append({"name": item.name, "content": file_content})
+            elif item.type == "dir":
+                file_list.extend(get_files_recursive(repo, item.path))
+        return file_list
+
     repo = github_instance.get_user(user).get_repo(repo_name)
-    file_list = []
-    for file in repo.get_contents(""):
-        if file.type == "file":
-            file_content = requests.get(file.download_url).text
-            file_list.append({"name": file.name, "content": file_content})
-    return file_list
+    return get_files_recursive(repo, "")
+
 
 
 def count_tokens(text_arr):
@@ -50,13 +57,15 @@ def gptinstance(prompt, filename):
     github_user = "xXenithx"
     repo_name = "aichatbot"
     files = get_files_from_repo(github_user, repo_name)
-    # print(f'[Debug] Files: {files}')
+    print(f'[Debug] Files: {files}')
 
     contents = ""
 
     for file in files:
         if file['name'] == filename:
             contents = file['content']
+            print(f"[Debug] Found {filename}:\n{contents}")
+
 
     # print(f"[Debug] Contents: {contents}")
     m.append({"role": "system", "content": "As a GPT instance, you'll assist the main instance by answering its queries. The format is:User: PromptUser: <code>Keep responses brief to avoid token limits."})
@@ -143,8 +152,8 @@ def remove_html_tags(text):
     return re.sub(clean, '', text)
 
 
-@app.route("/", methods=["GET"], defaults={"conversation_id": None})
-@app.route("/<conversation_id>", methods=["GET"])
+@app.route("/", methods=["GET", "POST"], defaults={"conversation_id": None})
+@app.route("/<conversation_id>", methods=["GET", "POST"])
 def index(conversation_id):
     if conversation_id is None:
         conversation_id = str(uuid.uuid4())
@@ -152,55 +161,50 @@ def index(conversation_id):
     if conversation_id not in conversations:
         conversations[conversation_id] = []
 
+
+    #If it's a POST request, process the form data
+    if request.method == "POST":
+        action = request.form.get("action")
+
+        if action == "Send":
+            p = request.form["prompt"]
+            instances = []
+            sys = [{"role": "system", "content":"Assist with code-related questions. You know filenames but not the code to avoid token limit. You'll receive a list of filenames. For queries about a specific file, call an internal function gptinstance(prompt, filename). The prompt is your question for another GPT instance, and the filename is the name of the file being requested. The next message is the other GPT instance's response. Example: User: 'Help needed for filename1 to make code efficient.'Assistant: gptinstance('Make code efficient', filename1) User: GPT Response: 'GPT model response...'"}]
+            m = conversations[conversation_id] + [{"role": "user", "content": p}]
+            max_tokens = 8192 - count_tokens(m+sys) - 1
+
+            # Adds a saftey buffer to avoid over-generating tokens
+            safety_buffer = 50
+            max_tokens = max(1, max_tokens - safety_buffer)
+
+            print(f"Debug: {m}")
+            print(f"Debug: Max Token count {max_tokens}")
+            print(f"Debug: Messages: {m}, Max Tokens: {max_tokens}")
+
+            res = openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=sys+m,
+                temperature=0.6,
+                max_tokens=max_tokens,
+            )
+
+            result = markdown2.markdown(
+                res["choices"][0]["message"]["content"], extras=["fenced-code-blocks"])
+            
+            result_without_tags = remove_html_tags(result)
+            id,response = parse_and_call_function(result_without_tags)
+
+            instances.append(id)
+            print(f"[Debug] Instance Tracker: {instances}\nResponse:{response}")
+
+            conversations[conversation_id].append({"role": "user", "content": p})
+            conversations[conversation_id].append({"role": "assistant", "content": response})
+        
+        elif action == "Clear":
+            popped_data = conversations.pop(conversation_id)
+            print(f'[Debug] Popping Data from session: \n{popped_data}')
+
     return render_template("index.html", messages=conversations[conversation_id], conversation_id=conversation_id)
-
-
-
-@app.route("/", methods=["POST"])
-def process_form():
-
-    conversation_id = request.form["conversation_id"]
-
-    if request.form["action"] == "Send":
-        p = request.form["prompt"]
-        instances = []
-        sys = [{"role": "system", "content":"Assist with code-related questions. You know filenames but not the code to avoid token limit. You'll receive a list of filenames. For queries about a specific file, call an internal function gptinstance(prompt, filename). The prompt is your question for another GPT instance, and the filename is the name of the file being requested. The next message is the other GPT instance's response. Example: User: 'Help needed for filename1 to make code efficient.'Assistant: gptinstance('Make code efficient', filename1) User: GPT Response: 'GPT model response...'"}]
-        m = conversations[conversation_id] + [{"role": "user", "content": p}]
-        max_tokens = 8192 - count_tokens(m+sys) - 1
-
-        # Adds a saftey buffer to avoid over-generating tokens
-        safety_buffer = 50
-        max_tokens = max(1, max_tokens - safety_buffer)
-
-        print(f"Debug: {m}")
-        print(f"Debug: Max Token count {max_tokens}")
-        print(f"Debug: Messages: {m}, Max Tokens: {max_tokens}")
-
-        res = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=sys+m,
-            temperature=0.6,
-            max_tokens=max_tokens,
-        )
-
-        result = markdown2.markdown(
-            res["choices"][0]["message"]["content"], extras=["fenced-code-blocks"])
-        
-        result_without_tags = remove_html_tags(result)
-        id,response = parse_and_call_function(result_without_tags)
-
-        instances.append(id)
-        print(f"[Debug] Instance Tracker: {instances}\nResponse:{response}")
-
-        conversations[conversation_id].append({"role": "user", "content": p})
-        conversations[conversation_id].append({"role": "assistant", "content": response})
-
-    elif request.form["action"] == "Clear":
-        popped_data = conversations.pop(conversation_id)
-        
-        print(f'[Debug] Popping Data from session: \n{popped_data}')
-    
-    return redirect(url_for("index", conversation_id=conversation_id))
 
 if __name__ == "__main__":
     app.run()
